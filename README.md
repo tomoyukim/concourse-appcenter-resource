@@ -2,10 +2,10 @@
 Concourse resource for distributing a build artifacts to Microsoft [App Center](https://appcenter.ms/apps).
 
 ## Source configuration
-- `api_token`: Required.
-- `owner`: Required.
-- `app_name`: Required.
-- `group_id`: Required. Now only support releasing to group
+- `api_token`: Required. Prepare API token to call App Center API and set here. See [how to get API token](https://docs.microsoft.com/en-us/appcenter/api-docs/index).
+- `owner`: Required. The `owner_name` used in the URL for the API calls of App Center. See [the detail](https://docs.microsoft.com/en-us/appcenter/distribution/uploading#distributing-using-the-apis).
+- `app_name`: Required. Your `app_name` used in the URL for the API calls of App Center. See [the detail](https://docs.microsoft.com/en-us/appcenter/distribution/uploading#distributing-using-the-apis).
+- `group_id`: Required. Now only support releasing to [distribution group](https://docs.microsoft.com/ja-jp/appcenter/distribution/groups).
 
 ### Example
 ```yaml
