@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+
+set -e
+
+exec 3>&1 # make stdout available as fd 3 for the result
+exec 1>&2 # redirect all output to stderr for logging
+
+source=$1
+
+if [ -z "$source" ]; then
+  echo "usage: $0 <path/to/source>" >&2
+  exit 1
+fi
+
+payload=$(mktemp /tmp/appcenter-artifact.XXXXXX)
+cat > $payload <&0
+
+token=$(jq -r '.source.api_token // ""' < $payload)
+owner=$(jq -r '.source.owner // ""' < $payload)
+app_name=$(jq -r '.source.app_name // ""' < $payload)
+group_id=$(jq -r '.source.group_id // ""' < $payload)
+
+if [ -z "$token" ]; then
+  echo "invalid payload (missing token)"
+  exit 1
+fi
+
+if [ -z "$owner" ]; then
+  echo "invalid payload (missing owner)"
+  exit 1
+fi
+
+if [ -z "$app_name" ]; then
+  echo "invalid payload (missing app_name)"
+  exit 1
+fi
+
+#TODO: support release variation except for group_id
+
+path=$(jq -r '.params.path // ""' < $payload)
+binary_name=$(jq -r '.params.binary_name // ""' < $payload)
+#TODO: default should be app_name
+cd $source/$path
+
+# Note: build_version and build_number parsed and checked in the server side. Different values are not accepted.
+#--data "{\"build_version\":\"$VERSION\", \"build_number\":\"$NUMBER\"}" \
+response=$(curl -X POST \
+--header 'Content-Type: application/json' \
+--header 'Accept: application/json' \
+--header "X-API-Token: $token" \
+"https://api.appcenter.ms/v0.1/apps/$owner/$app_name/release_uploads")
+
+url=$(echo $response | jq -r '.upload_url')
+curl -F "ipa=@$binary_name" $url
+
+upload_id=$(echo $response | jq -r '.upload_id')
+release_id=$(curl -X PATCH \
+--header 'Content-Type: application/json' \
+--header 'Accept: application/json' \
+--header "X-API-Token: $token" \
+--data "{ \"status\": \"committed\"}" \
+"https://api.appcenter.ms/v0.1/apps/$owner/$app_name/release_uploads/$upload_id" | jq -r '.release_id')
+
+curl -X POST \
+--header "accept: application/json" \
+--header "Content-Type: application/json" \
+--header "X-API-Token: $token" \
+--data "{ \"id\": \"$group_id\", \"mandatory_update\": true, \"notify_testers\": true}" \
+"https://api.appcenter.ms/v0.1/apps/$owner/$app_name/releases/$release_id/groups"
+
+printf '{"version":{}}' >&3
