@@ -15,7 +15,7 @@ create_release_uploads() {
   "https://api.appcenter.ms/v0.1/apps/$OWNER/$APP_NAME/release_uploads")
 
   if [ $status -lt 200 ] || [ $status -gt 299 ]; then
-    echo "api error: $(cat $RESPONSE | jq -r '.message')"
+    echo "create release_uploads error: $(cat $RESPONSE | jq -r '.message')"
     exit 1
   fi
   cat $RESPONSE
@@ -38,7 +38,7 @@ update_release_uploads_status() {
   "https://api.appcenter.ms/v0.1/apps/$OWNER/$APP_NAME/release_uploads/$upload_id")
 
   if [ $status -lt 200 ] || [ $status -gt 299 ]; then
-    echo "api error: $(cat $RESPONSE | jq -r '.message')"
+    echo "update release_uploads status error: $(cat $RESPONSE | jq -r '.message')"
     exit 1
   fi
   cat $RESPONSE
@@ -56,11 +56,11 @@ distribute_testers() {
   --header "Content-Type: application/json" \
   --header "X-API-Token: $API_TOKEN" \
   -o $RESPONSE \
-  --data "{ \"email\": \"$email\", \"mandatory_update\": \"${mandatory_update}\", \"notify_testers\": \"${notify_testers}\"}" \
-  "https://api.appcenter.ms/v0.1/apps/$OWNER/$APP_NAME/releases/$release_id/groups")
+  --data "{ \"email\": \"$email\", \"mandatory_update\": ${mandatory_update}, \"notify_testers\": ${notify_testers}}" \
+  "https://api.appcenter.ms/v0.1/apps/$OWNER/$APP_NAME/releases/$release_id/testers")
 
   if [ $status -lt 200 ] || [ $status -gt 299 ]; then
-    echo "api error: $(cat $RESPONSE | jq -r '.message')"
+    echo "distribute testers error: $(cat $RESPONSE | jq -r '.message')"
     exit 1
   fi
 }
@@ -78,11 +78,11 @@ distribute_groups() {
   --header "Content-Type: application/json" \
   --header "X-API-Token: $API_TOKEN" \
   -o $RESPONSE \
-  --data "{ \"id\": \"$group_id\", \"mandatory_update\": \"${mandatory_update}\", \"notify_testers\": \"${notify_testers}\"}" \
+  --data "{ \"id\": \"$group_id\", \"mandatory_update\": ${mandatory_update}, \"notify_testers\": ${notify_testers}}" \
   "https://api.appcenter.ms/v0.1/apps/$OWNER/$APP_NAME/releases/$release_id/groups")
 
   if [ $status -lt 200 ] || [ $status -gt 299 ]; then
-    echo "api error: $(cat $RESPONSE | jq -r '.message')"
+    echo "distribute groups error: $(cat $RESPONSE | jq -r '.message')"
     exit 1
   fi
 }
@@ -98,10 +98,10 @@ distribute_store() {
   --header "X-API-Token: $API_TOKEN" \
   -o $RESPONSE \
   --data "{ \"id\": \"$store_id\"}" \
-  "https://api.appcenter.ms/v0.1/apps/$OWNER/$APP_NAME/releases/$release_id/groups")
+  "https://api.appcenter.ms/v0.1/apps/$OWNER/$APP_NAME/releases/$release_id/stores")
 
   if [ $status -lt 200 ] || [ $status -gt 299 ]; then
-    echo "api error: $(cat $RESPONSE | jq -r '.message')"
+    echo "distribute stores error: $(cat $RESPONSE | jq -r '.message')"
     exit 1
   fi
 }

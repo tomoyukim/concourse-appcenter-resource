@@ -39,10 +39,6 @@ source $(dirname $0)/api.sh
 path=$(jq -r '.params.path // ""' < $payload)
 binary_name=$(jq --arg dn $app_name -r '.params.binary_name // $dn' < $payload)
 
-if [ ! -e "$binary_name" ]; then
-    echo "$binary_name not found."
-fi
-
 ## release uploads
 cd $source/$path
 
@@ -59,6 +55,7 @@ fi
 
 upload_id=$(echo $response | jq -r '.upload_id')
 release_id=$(update_release_uploads_status $upload_id "committed" | jq -r '.release_id')
+echo "Release ID: $release_id"
 
 ## distribution
 group_id=$(jq -r '.source.group_id // ""' < $payload)
