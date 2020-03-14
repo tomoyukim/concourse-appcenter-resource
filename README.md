@@ -1,11 +1,20 @@
 # concourse-appcenter-resource
-Concourse resource for distributing a build artifacts to Microsoft [App Center](https://appcenter.ms/apps).
+Concourse resource for distributing a build artifact to Microsoft [App Center](https://docs.microsoft.com/en-us/appcenter/distribution/uploading).
 
 ## Source configuration
 - `api_token`: Required. Prepare API token to call App Center API and set here. See [how to get API token](https://docs.microsoft.com/en-us/appcenter/api-docs/index).
 - `owner`: Required. The `owner_name` used in the URL for the API calls of App Center. See [the detail](https://docs.microsoft.com/en-us/appcenter/distribution/uploading#distributing-using-the-apis).
 - `app_name`: Required. Your `app_name` used in the URL for the API calls of App Center. See [the detail](https://docs.microsoft.com/en-us/appcenter/distribution/uploading#distributing-using-the-apis).
-- `group_id`: Required. Now only support releasing to [distribution group](https://docs.microsoft.com/ja-jp/appcenter/distribution/groups).
+- Distribute to group
+  - `group_id`: Required. Group ID to [distribute group](https://docs.microsoft.com/ja-jp/appcenter/distribution/groups).
+  - `mandatory_update`: Optional. (default value is false)
+  - `notify_testers`: Optional. (default value is false)
+- Distribute to testers
+  - `email`: Required. Target tester's email
+  - `mandatory_update`: Optional. (default value is false)
+  - `notify_testers`: Optional. (default value is false)
+- Distribute to store
+  - `store_id`: Required.
 
 ### Example
 ```yaml
@@ -36,7 +45,7 @@ There is not `in` in this resource.
 ### `out`: Release build artifact to App Center in your group
 
 #### Parameters
-- `binary_name`: Required. The target binary file name to release.
+- `binary_name`: Optional. The target binary file name to release. (default value is `app_name`)
 - `path`: Optional. The path to a directory containing target binary file to release.
 
 #### Example

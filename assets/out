@@ -6,66 +6,75 @@ exec 3>&1 # make stdout available as fd 3 for the result
 exec 1>&2 # redirect all output to stderr for logging
 
 source=$1
-
 if [ -z "$source" ]; then
   echo "usage: $0 <path/to/source>" >&2
   exit 1
 fi
 
 payload=$(mktemp /tmp/appcenter-artifact.XXXXXX)
+echo $payload
 cat > $payload <&0
 
-token=$(jq -r '.source.api_token // ""' < $payload)
-owner=$(jq -r '.source.owner // ""' < $payload)
-app_name=$(jq -r '.source.app_name // ""' < $payload)
-group_id=$(jq -r '.source.group_id // ""' < $payload)
+export API_TOKEN=$(jq -r '.source.api_token // ""' < $payload)
+export OWNER=$(jq -r '.source.owner // ""' < $payload)
+export APP_NAME=$(jq -r '.source.app_name // ""' < $payload)
 
-if [ -z "$token" ]; then
+if [ -z "$API_TOKEN" ]; then
   echo "invalid payload (missing token)"
   exit 1
 fi
 
-if [ -z "$owner" ]; then
+if [ -z "$OWNER" ]; then
   echo "invalid payload (missing owner)"
   exit 1
 fi
 
-if [ -z "$app_name" ]; then
+if [ -z "$APP_NAME" ]; then
   echo "invalid payload (missing app_name)"
   exit 1
 fi
 
-#TODO: support release variation except for group_id
+source $(dirname $0)/api.sh
 
 path=$(jq -r '.params.path // ""' < $payload)
-binary_name=$(jq -r '.params.binary_name // ""' < $payload)
-#TODO: default should be app_name
+binary_name=$(jq --arg dn $app_name -r '.params.binary_name // $dn' < $payload)
+
+if [ ! -e "$binary_name" ]; then
+    echo "$binary_name not found."
+fi
+
+## release uploads
 cd $source/$path
 
-# Note: build_version and build_number parsed and checked in the server side. Different values are not accepted.
-#--data "{\"build_version\":\"$VERSION\", \"build_number\":\"$NUMBER\"}" \
-response=$(curl -X POST \
---header 'Content-Type: application/json' \
---header 'Accept: application/json' \
---header "X-API-Token: $token" \
-"https://api.appcenter.ms/v0.1/apps/$owner/$app_name/release_uploads")
-
+response=$(create_release_uploads)
 url=$(echo $response | jq -r '.upload_url')
-curl -F "ipa=@$binary_name" $url
+
+echo "file uploading..."
+status=$(curl -w %{http_code} -F "ipa=@$binary_name" $url)
+
+if [ $status -lt 200 ] || [ $status -gt 299 ]; then
+  echo "api error: $(echo $response | jq -r '.message')"
+  exit 1
+fi
 
 upload_id=$(echo $response | jq -r '.upload_id')
-release_id=$(curl -X PATCH \
---header 'Content-Type: application/json' \
---header 'Accept: application/json' \
---header "X-API-Token: $token" \
---data "{ \"status\": \"committed\"}" \
-"https://api.appcenter.ms/v0.1/apps/$owner/$app_name/release_uploads/$upload_id" | jq -r '.release_id')
+release_id=$(update_release_uploads_status $upload_id "committed" | jq -r '.release_id')
 
-curl -X POST \
---header "accept: application/json" \
---header "Content-Type: application/json" \
---header "X-API-Token: $token" \
---data "{ \"id\": \"$group_id\", \"mandatory_update\": true, \"notify_testers\": true}" \
-"https://api.appcenter.ms/v0.1/apps/$owner/$app_name/releases/$release_id/groups"
+## distribution
+group_id=$(jq -r '.source.group_id // ""' < $payload)
+email=$(jq -r '.source.email // ""' < $payload)
+store_id=$(jq -r '.source.store_id // ""' < $payload)
+mandatory_update=$(jq -r '.source.mandatory_update // false' < $payload)
+notify_testers=$(jq -r '.source.notify_testers // false' < $payload)
+
+if [ -n "$group_id" ]; then
+  distribute_groups $release_id $group_id $mandatory_update $notify_testers
+elif [ -n "$email" ]; then
+  distribute_testers $release_id $email $mandatory_update $notify_testers
+elif [ -n "$store_id"]; then
+  distribute_store $release_id $store_id
+else
+  echo "distribution skipped."
+fi
 
 printf '{"version":{}}' >&3
