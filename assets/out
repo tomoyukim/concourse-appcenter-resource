@@ -68,7 +68,7 @@ if [ -n "$group_id" ]; then
   distribute_groups $release_id $group_id $mandatory_update $notify_testers
 elif [ -n "$email" ]; then
   distribute_testers $release_id $email $mandatory_update $notify_testers
-elif [ -n "$store_id"]; then
+elif [ -n "$store_id" ]; then
   distribute_store $release_id $store_id
 else
   echo "distribution skipped."

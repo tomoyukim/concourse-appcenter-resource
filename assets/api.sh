@@ -20,9 +20,6 @@ create_release_uploads() {
   fi
   cat $RESPONSE
 }
-#response=$(mktemp /tmp/appcenter-response.XXXXXX)
-#release_uploads
-#url=$(cat $response | jq -r '.upload_url')
 
 update_release_uploads_status() {
   local upload_id=$1
