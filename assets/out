@@ -38,6 +38,7 @@ source $(dirname $0)/api.sh
 
 path=$(jq -r '.params.path // ""' < $payload)
 binary_name=$(jq --arg dn $app_name -r '.params.binary_name // $dn' < $payload)
+release_notes=$(jq -r '.params.release_notes // ""' < $payload)
 
 ## release uploads
 cd $source/$path
@@ -57,6 +58,10 @@ upload_id=$(echo $response | jq -r '.upload_id')
 release_id=$(update_release_uploads_status $upload_id "committed" | jq -r '.release_id')
 echo "Release ID: $release_id"
 
+if [ -n "$release_notes" ]; then
+  put_release_notes $release_id $release_notes
+fi
+
 ## distribution
 group_id=$(jq -r '.source.group_id // ""' < $payload)
 email=$(jq -r '.source.email // ""' < $payload)
@@ -68,7 +73,7 @@ if [ -n "$group_id" ]; then
   distribute_groups $release_id $group_id $mandatory_update $notify_testers
 elif [ -n "$email" ]; then
   distribute_testers $release_id $email $mandatory_update $notify_testers
-elif [ -n "$store_id"]; then
+elif [ -n "$store_id" ]; then
   distribute_store $release_id $store_id
 else
   echo "distribution skipped."

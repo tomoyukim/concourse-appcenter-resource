@@ -20,9 +20,26 @@ create_release_uploads() {
   fi
   cat $RESPONSE
 }
-#response=$(mktemp /tmp/appcenter-response.XXXXXX)
-#release_uploads
-#url=$(cat $response | jq -r '.upload_url')
+
+put_release_notes() {
+  local release_id=$1
+  local rel_notes=$(tr -d '\015' < $2 | sed -e ':loop' -e 'N' -e '$!bloop' -e 's/\\/\\\\/g' -e 's/\n/\\n/g' -e 's/\"/\\"/g')
+
+  local status=$(curl -s -X PUT \
+  --write-out %{http_code} \
+  --header 'Content-Type: application/json' \
+  --header 'Accept: application/json' \
+  --header "X-API-Token: $API_TOKEN" \
+  -o $RESPONSE \
+  --data "{ \"release_notes\": \"$rel_notes\"}" \
+  "https://api.appcenter.ms/v0.1/apps/$OWNER/$APP_NAME/releases/$release_id")
+
+  if [ $status -lt 200 ] || [ $status -gt 299 ]; then
+    echo "create release_uploads error: $(cat $RESPONSE | jq -r '.message')"
+    exit 1
+  fi
+  cat $RESPONSE
+}
 
 update_release_uploads_status() {
   local upload_id=$1
