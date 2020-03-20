@@ -46,7 +46,8 @@ There is not `in` in this resource.
 
 #### Parameters
 - `binary_name`: Optional. The target binary file name to release. (default value is `app_name`)
-- `path`: Optional. The path to a directory containing target binary file to release.
+- `release_notes`: Optional. File name of release notes.
+- `path`: Optional. The path to a directory containing target files to release like binary or release_notes.
 
 #### Example
 ```yaml
@@ -76,4 +77,5 @@ jobs:
       params:
         path: artifact/
         binary_name: my_app.ipa
+        release_notes: readme.md
 ```
